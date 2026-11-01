@@ -1168,8 +1168,9 @@ void PrismUpdaterApp::downloadReleasePage(const QString& api_url, int page)
     connect(download.get(), &Net::Download::failed, this, &PrismUpdaterApp::downloadError);
 
     m_current_task.reset(download);
-    connect(download.get(), &Net::Download::finished, this,
-            [this]() { qDebug() << "Download" << m_current_task->getUid().toString() << "finished"; });
+    connect(download.get(), &Net::Download::finished, this, [this]() {
+        qDebug() << "Download" << m_current_task->getUid().toString() << "finished";
+    });
 
     QCoreApplication::processEvents();
 
@@ -1240,7 +1241,8 @@ GitHubRelease PrismUpdaterApp::getLatestRelease()
 
 bool PrismUpdaterApp::needUpdate(const GitHubRelease& release)
 {
-    return Version(m_prismVersion) < release.version;
+    auto current_ver = Version(QString("%1.%2.%3.%4").arg(m_prismVersionMajor).arg(m_prismVersionMinor).arg(m_prismVersionPatch).arg(m_prismVersionBuild));
+    return current_ver < release.version;
 }
 
 void PrismUpdaterApp::downloadError(QString reason)
