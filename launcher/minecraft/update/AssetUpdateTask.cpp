@@ -30,11 +30,6 @@ void AssetUpdateTask::executeTask()
 
     auto metacache = APPLICATION->metacache();
     auto entry = metacache->resolveEntry("asset_indexes", localPath);
-    if (QFileInfo(entry->getFullPath()).exists()) {
-        qDebug() << "Asset index already exists locally, skipping download:" << entry->getFullPath();
-        emitSucceeded();
-        return;
-    }
     entry->setStale(true);
     auto hexSha1 = assets->sha1.toLatin1();
     qDebug() << "Asset index SHA1:" << hexSha1;
@@ -101,6 +96,18 @@ void AssetUpdateTask::assetIndexFinished()
 void AssetUpdateTask::assetIndexFailed(QString reason)
 {
     qDebug() << m_inst->name() << ": Failed asset index download";
+
+    auto components = m_inst->getPackProfile();
+    auto profile = components->getProfile();
+    auto assets = profile->getMinecraftAssets();
+    auto metacache = APPLICATION->metacache();
+    auto entry = metacache->resolveEntry("asset_indexes", assets->id + ".json");
+    if (QFileInfo(entry->getFullPath()).exists()) {
+        qDebug() << "Asset index exists locally despite download failure, skipping:" << entry->getFullPath();
+        emitSucceeded();
+        return;
+    }
+
     emitFailed(tr("Failed to download the assets index:\n%1").arg(reason));
 }
 
