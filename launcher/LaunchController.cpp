@@ -100,6 +100,11 @@ void LaunchController::decideAccount()
 
 LaunchDecision LaunchController::decideLaunchMode()
 {
+    if (!m_accountToUse) {
+        // No Microsoft account signed in; fall back to offline launch.
+        m_actualLaunchMode = LaunchMode::Offline;
+        return LaunchDecision::Continue;
+    }
     m_actualLaunchMode = m_wantedLaunchMode;
     return LaunchDecision::Continue;
 }
