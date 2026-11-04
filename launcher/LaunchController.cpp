@@ -94,35 +94,7 @@ void LaunchController::decideAccount()
     }
 
     if (!m_accountToUse) {
-        // Check if there are any accounts at all
-        if (accounts->count() == 0) {
-            // No accounts exist, offer to create an offline account directly
-            ChooseOfflineNameDialog dialog(tr("No account found. Please enter a username to create an offline account."), m_parentWidget);
-            dialog.setWindowTitle(tr("Create Offline Account"));
-            if (dialog.exec() == QDialog::Accepted) {
-                const MinecraftAccountPtr account = MinecraftAccount::createOffline(dialog.getUsername());
-                if (account) {
-                    account->login()->start();  // The task will complete here.
-                    accounts->addAccount(account);
-                    m_accountToUse = account;
-                    accounts->setDefaultAccount(account);
-                }
-            }
-        } else {
-            // Accounts exist, show profile selection dialog
-            ProfileSelectDialog selectDialog(tr("Which account would you like to use?"), ProfileSelectDialog::GlobalDefaultCheckbox,
-                                             m_parentWidget);
-
-            selectDialog.exec();
-
-            // Launch the instance with the selected account.
-            m_accountToUse = selectDialog.selectedAccount();
-
-            // If the user said to use the account as default, do that.
-            if (selectDialog.useAsGlobalDefault() && m_accountToUse) {
-                accounts->setDefaultAccount(m_accountToUse);
-            }
-        }
+        // No Microsoft account available; proceed without signing in (offline launch).
     }
 }
 
@@ -167,8 +139,7 @@ QString LaunchController::askOfflineName(const QString& playerName, bool* ok)
             break;
         case LaunchMode::Offline:
             if (m_wantedLaunchMode == LaunchMode::Normal) {
-                auto netErr = m_accountToUse->accountData()->networkError;
-                if (Net::isServerError(netErr)) {
+                if (m_accountToUse && Net::isServerError(m_accountToUse->accountData()->networkError)) {
                     title = tr("Auth servers offline");
                     message = tr("The Minecraft authentication servers are currently unavailable, launching in offline mode.\n\n");
                 } else {
@@ -230,6 +201,15 @@ void LaunchController::login()
 
     m_session = std::make_shared<AuthSession>();
     m_session->launchMode = m_actualLaunchMode;
+
+    if (!m_accountToUse) {
+        // No Microsoft account: launch offline without signing in.
+        m_actualLaunchMode = LaunchMode::Offline;
+        m_session->MakeOffline("Player");
+        launchInstance();
+        return;
+    }
+
     m_accountToUse->fillSession(m_session);
 
     if (m_accountToUse->accountType() != AccountType::Offline) {
