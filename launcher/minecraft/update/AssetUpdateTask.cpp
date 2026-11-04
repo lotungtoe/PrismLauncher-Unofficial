@@ -7,6 +7,8 @@
 #include "minecraft/PackProfile.h"
 #include "net/ChecksumValidator.h"
 
+#include <QFileInfo>
+
 #include "Application.h"
 
 #include "net/ApiDownload.h"
@@ -28,6 +30,11 @@ void AssetUpdateTask::executeTask()
 
     auto metacache = APPLICATION->metacache();
     auto entry = metacache->resolveEntry("asset_indexes", localPath);
+    if (QFileInfo(entry->getFullPath()).exists()) {
+        qDebug() << "Asset index already exists locally, skipping download:" << entry->getFullPath();
+        emitSucceeded();
+        return;
+    }
     entry->setStale(true);
     auto hexSha1 = assets->sha1.toLatin1();
     qDebug() << "Asset index SHA1:" << hexSha1;
